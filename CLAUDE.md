@@ -6,15 +6,15 @@ Self-hosted teaching tool for a business course on LLM APIs. Attendees open one 
 
 ```bash
 npm install
-cp .env.example .env   # set COURSE_PASSWORD, COOKIE_SECRET, optional PORT (default 3000)
+cp .env.example .env   # set COURSE_PASSWORD, COOKIE_SECRET; optional PORT (default 3000), DEFAULT_ENDPOINT, DEFAULT_MODEL
 npm start
 ```
 
-No test suite, no build step. Node >= 18 (native `fetch`); dependencies are only express, cookie-parser, dotenv.
+`.env` is read only at startup: restart the server after editing it. No test suite, no build step. Node >= 18 (native `fetch`); dependencies are only express, cookie-parser, dotenv.
 
 ## Architecture
 
-- `server/index.js`: Express app. Serves `public/`, `POST /api/login` (checks `COURSE_PASSWORD`, sets 8h signed httpOnly cookie), `POST /api/relay` (requires cookie).
+- `server/index.js`: Express app. Serves `public/`, `POST /api/login` (checks `COURSE_PASSWORD`, sets 8h signed httpOnly cookie), `GET /api/config` (cookie required; returns `DEFAULT_ENDPOINT` / `DEFAULT_MODEL` for the Chat tab, fetched by `initTool()` after login, falls back to built-in defaults when unset), `POST /api/relay` (requires cookie).
 - `server/relay.js`: deliberately dumb generic relay. Takes `{ url, method, headers, body }`, drops blank headers (so an empty API key sends no `Authorization`), returns `{ status, headers, body }` verbatim. No OpenAI knowledge, no host allowlist; the password gate is the only protection.
 - `public/`: vanilla HTML/CSS/JS, no framework. All OpenAI-specific logic (URLs, body shapes, cosine similarity) lives in `public/app.js`.
 
@@ -23,6 +23,9 @@ No test suite, no build step. Node >= 18 (native `fetch`); dependencies are only
 - Attendees bring their own API key; the server holds no OpenAI key and stores nothing. Keys only pass through one relayed request, never log them.
 - Access control is one shared course password, not per-attendee codes or budgets.
 - Request body textarea is editable and auto-synced from the guided form until the user edits it directly (dirty flag per tab); "Re-sync from form" resets it. The Raw request panel is a read-only preview with optional key masking (display only; the real key is always what gets sent).
+- Chat form has a "Reasoning effort" select (not sent / low / medium / high); when set it adds `reasoning_effort` to the body. Models that don't support it return a real API error, which is intentional teaching material.
+- Continuing a chat: after a successful chat response, "Add reply to messages" appends only the reply's `role` and `content` (not reasoning fields) plus an empty user row, and re-syncs the body even if it was hand-edited.
+- Tool (function) calling: a collapsible "Tools" textarea takes a JSON array that is sent as `tools` (invalid JSON is not sent, with an inline error). The model never runs anything. When a reply contains `tool_calls`, "Add reply to messages" appends the assistant message (with `tool_calls`, `content: null`) plus one `tool` row per call carrying `tool_call_id`; the attendee types the result by hand. Message rows keep these extras in `row.dataset`.
 - Embeddings: one call with `input: [A, B]`; similarity is computed client-side. Long number arrays are truncated for display only (`truncateForDisplay`), the full response is kept for the calculation.
 - Endpoint URL and model fields are free text with `<datalist>` suggestions. Defaults include `http://batman.tmit.bme.hu:8000/v1/chat/completions` and model `openai/gpt-oss-120b`. Each tab keeps its own URL in `state.urls`.
 - Layout: full-width, viewport-height, panels scroll independently. The endpoint config is a single-line collapsed bar (summary shows URL and key set/not set). Narrow screens (<1000px) stack to one column.

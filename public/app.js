@@ -11,6 +11,7 @@ const state = {
   chatBodyDirty: false,
   embBodyDirty: false,
   lastResponseBody: null,
+  lastReply: null,
 };
 
 // ---------- Login ----------
@@ -40,7 +41,15 @@ el('login-form').addEventListener('submit', async (e) => {
 
 // ---------- Tool init ----------
 
-function initTool() {
+async function initTool() {
+  try {
+    const res = await fetch('/api/config');
+    const cfg = res.ok ? await res.json() : {};
+    if (cfg.defaultEndpoint) state.urls.chat = cfg.defaultEndpoint;
+    if (cfg.defaultModel) el('chat-model').value = cfg.defaultModel;
+  } catch {
+    // fall back to the built-in defaults
+  }
   el('endpoint-url').value = state.urls[state.activeTab];
   renderChatMessages([
     { role: 'system', content: 'You are a helpful assistant.' },
@@ -83,6 +92,13 @@ function initTool() {
 
   el('chat-model').addEventListener('input', syncChatBody);
   el('chat-max-tokens').addEventListener('input', syncChatBody);
+  el('chat-reasoning').addEventListener('change', syncChatBody);
+  el('chat-tools').addEventListener('input', syncChatBody);
+  el('insert-example-tool').addEventListener('click', () => {
+    el('chat-tools').value = JSON.stringify(EXAMPLE_TOOLS, null, 2);
+    syncChatBody();
+  });
+  el('append-reply').addEventListener('click', appendReplyToMessages);
   el('chat-temperature').addEventListener('input', () => {
     el('chat-temperature-value').textContent = el('chat-temperature').value;
     syncChatBody();
@@ -110,6 +126,19 @@ function initTool() {
   });
 
   el('send-button').addEventListener('click', sendRequest);
+
+  const dialog = el('json-dialog');
+  document.querySelectorAll('.expand-button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      el('json-dialog-title').textContent = btn.dataset.title;
+      el('json-dialog-content').textContent = el(btn.dataset.target).textContent;
+      dialog.showModal();
+    });
+  });
+  el('json-dialog-close').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
 }
 
 function switchTab(tab) {
@@ -121,6 +150,7 @@ function switchTab(tab) {
     panel.classList.toggle('active', panel.id === `tab-${tab}`);
   });
   el('endpoint-url').value = state.urls[tab];
+  el('append-reply').hidden = !(tab === 'chat' && state.lastReply);
   updateRawRequestPreview();
 }
 
@@ -131,12 +161,14 @@ function renderChatMessages(messages) {
   messages.forEach((m) => addMessageRow(m.role, m.content));
 }
 
-function addMessageRow(role, content) {
+function addMessageRow(role, content, extra = {}) {
   const row = document.createElement('div');
   row.className = 'message-row';
+  if (extra.toolCalls) row.dataset.toolCalls = JSON.stringify(extra.toolCalls);
+  if (extra.toolCallId) row.dataset.toolCallId = extra.toolCallId;
 
   const select = document.createElement('select');
-  ['system', 'user', 'assistant'].forEach((r) => {
+  ['system', 'user', 'assistant', 'tool'].forEach((r) => {
     const opt = document.createElement('option');
     opt.value = r;
     opt.textContent = r;
@@ -148,6 +180,11 @@ function addMessageRow(role, content) {
   const textarea = document.createElement('textarea');
   textarea.rows = 2;
   textarea.value = content;
+  if (extra.toolCalls) {
+    textarea.placeholder = 'tool calls: ' + extra.toolCalls.map((c) => c.function.name).join(', ');
+  } else if (extra.toolCallId) {
+    textarea.placeholder = `result for ${extra.toolCallId} (type what the function returned)`;
+  }
   textarea.addEventListener('input', syncChatBody);
 
   const removeBtn = document.createElement('button');
@@ -162,18 +199,60 @@ function addMessageRow(role, content) {
   el('chat-messages').appendChild(row);
 }
 
+const EXAMPLE_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'get_weather',
+      description: 'Get the current weather for a city',
+      parameters: {
+        type: 'object',
+        properties: { city: { type: 'string', description: 'City name, e.g. Budapest' } },
+        required: ['city'],
+      },
+    },
+  },
+];
+
+function parseTools() {
+  const text = el('chat-tools').value.trim();
+  const error = el('chat-tools-error');
+  error.textContent = '';
+  if (!text) return null;
+  try {
+    const tools = JSON.parse(text);
+    if (!Array.isArray(tools)) throw new Error('must be a JSON array');
+    return tools.length ? tools : null;
+  } catch (err) {
+    error.textContent = `Invalid tools JSON (${err.message}) — tools not sent`;
+    return null;
+  }
+}
+
 function syncChatBody() {
   if (state.chatBodyDirty) return;
-  const messages = Array.from(el('chat-messages').children).map((row) => ({
-    role: row.querySelector('select').value,
-    content: row.querySelector('textarea').value,
-  }));
+  const messages = Array.from(el('chat-messages').children).map((row) => {
+    const message = {
+      role: row.querySelector('select').value,
+      content: row.querySelector('textarea').value,
+    };
+    if (row.dataset.toolCalls) {
+      message.tool_calls = JSON.parse(row.dataset.toolCalls);
+      if (!message.content) message.content = null;
+    }
+    if (row.dataset.toolCallId) message.tool_call_id = row.dataset.toolCallId;
+    return message;
+  });
   const body = {
     model: el('chat-model').value,
     messages,
     temperature: Number(el('chat-temperature').value),
     max_tokens: Number(el('chat-max-tokens').value),
   };
+  const reasoning = el('chat-reasoning').value;
+  if (reasoning) body.reasoning_effort = reasoning;
+  const tools = parseTools();
+  if (tools) body.tools = tools;
   el('chat-body').value = JSON.stringify(body, null, 2);
   updateRawRequestPreview();
 }
@@ -271,6 +350,8 @@ async function sendRequest() {
   const bodyText = el(currentBodyTextareaId()).value;
 
   el('similarity-result').hidden = true;
+  el('append-reply').hidden = true;
+  state.lastReply = null;
   el('raw-response').textContent = 'Sending…';
 
   let body;
@@ -303,10 +384,42 @@ async function sendRequest() {
 
     if (state.activeTab === 'embeddings') {
       maybeShowSimilarity(relayResult.body);
+    } else {
+      maybeOfferAppend(relayResult.body);
     }
   } catch (err) {
     el('raw-response').textContent = 'Network error: ' + err.message;
   }
+}
+
+function maybeOfferAppend(responseBody) {
+  const message = responseBody && responseBody.choices && responseBody.choices[0] && responseBody.choices[0].message;
+  if (!message) return;
+  const toolCalls = Array.isArray(message.tool_calls) && message.tool_calls.length ? message.tool_calls : null;
+  if (!toolCalls && typeof message.content !== 'string') return;
+  state.lastReply = {
+    role: message.role || 'assistant',
+    content: typeof message.content === 'string' ? message.content : '',
+    toolCalls,
+  };
+  el('append-reply').hidden = false;
+}
+
+function appendReplyToMessages() {
+  if (!state.lastReply) return;
+  const { role, content, toolCalls } = state.lastReply;
+  addMessageRow(role, content, { toolCalls });
+  if (toolCalls) {
+    toolCalls.forEach((call) => addMessageRow('tool', '', { toolCallId: call.id }));
+  } else {
+    addMessageRow('user', '');
+  }
+  state.chatBodyDirty = false;
+  syncChatBody();
+  state.lastReply = null;
+  el('append-reply').hidden = true;
+  const rows = el('chat-messages').children;
+  rows[rows.length - 1].querySelector('textarea').focus();
 }
 
 function maybeShowSimilarity(responseBody) {

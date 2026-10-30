@@ -50,6 +50,18 @@ Authorization: Bearer sk-...your-key...
 The answer is at `choices[0].message.content`. `usage` is what you're
 billed for.
 
+## Tools (function calling)
+
+Add a `tools` array to the Chat Completions request, each entry describing a
+function (name, description, JSON-schema parameters). The model never runs
+anything: it may answer with `choices[0].message.tool_calls` (function name,
+JSON arguments, and an `id`). Your code runs the function, then sends the
+conversation back with the assistant message plus a `tool` message:
+```json
+{ "role": "tool", "tool_call_id": "call_abc123", "content": "18°C, sunny" }
+```
+The model then answers in plain language using that result.
+
 ## Embeddings — `/v1/embeddings`
 
 **Request body fields:**

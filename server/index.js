@@ -37,6 +37,13 @@ app.post('/api/login', (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/config', requireSession, (req, res) => {
+  res.json({
+    defaultEndpoint: process.env.DEFAULT_ENDPOINT || null,
+    defaultModel: process.env.DEFAULT_MODEL || null,
+  });
+});
+
 app.post('/api/relay', requireSession, async (req, res) => {
   const { target } = req.body || {};
   if (!target || typeof target !== 'object') {

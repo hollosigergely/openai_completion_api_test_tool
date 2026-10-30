@@ -73,9 +73,25 @@
               <label for="chat-max-tokens">Max tokens</label>
               <input type="number" id="chat-max-tokens" value="200" min="1" />
             </div>
+            <div class="field">
+              <label for="chat-reasoning">Reasoning effort</label>
+              <select id="chat-reasoning">
+                <option value="">not sent</option>
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+              </select>
+            </div>
           </div>
           <div id="chat-messages"></div>
           <div><button type="button" id="add-message">+ Add message</button></div>
+          <details class="tools-details">
+            <summary>Tools (function calling)</summary>
+            <p class="hint">Describe functions as a JSON array. The model only <em>asks</em> to call one (<code>tool_calls</code>); you run it and answer with a <code>tool</code> message.</p>
+            <textarea id="chat-tools" rows="8" spellcheck="false" placeholder="[]"></textarea>
+            <button type="button" id="insert-example-tool">Insert example (get_weather)</button>
+            <p id="chat-tools-error" class="error"></p>
+          </details>
         </div>
 
         <div class="card body-card">
@@ -119,17 +135,34 @@
 
     <div class="right-column">
       <div class="card pane-request">
-        <h2>Raw request</h2>
+        <div class="card-heading">
+          <h2>Raw request</h2>
+          <button type="button" class="expand-button" data-target="raw-request" data-title="Raw request">Full screen</button>
+        </div>
         <pre id="raw-request">—</pre>
       </div>
       <div class="card pane-response">
-        <h2>Raw response</h2>
+        <div class="card-heading">
+          <h2>Raw response</h2>
+          <div class="heading-actions">
+            <button type="button" id="append-reply" hidden>Add reply to messages</button>
+            <button type="button" class="expand-button" data-target="raw-response" data-title="Raw response">Full screen</button>
+          </div>
+        </div>
         <pre id="raw-response">—</pre>
         <div id="similarity-result" class="similarity-result" hidden></div>
       </div>
     </div>
   </div>
 </section>
+
+<dialog id="json-dialog">
+  <div class="dialog-header">
+    <h2 id="json-dialog-title"></h2>
+    <button type="button" id="json-dialog-close">Close</button>
+  </div>
+  <pre id="json-dialog-content"></pre>
+</dialog>
 
 <script src="app.js"></script>
 </body>

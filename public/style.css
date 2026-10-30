@@ -388,3 +388,58 @@ pre {
     min-height: 200px;
   }
 }
+
+.tools-details {
+  margin-top: 0.5rem;
+}
+
+.tools-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.tools-details textarea {
+  margin-bottom: 0.4rem;
+}
+
+.heading-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.heading-actions button[hidden] {
+  display: none;
+}
+
+#json-dialog {
+  width: 95vw;
+  height: 92vh;
+  max-width: none;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+#json-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#json-dialog pre {
+  max-height: none;
+  font-size: 0.85rem;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dialog-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
