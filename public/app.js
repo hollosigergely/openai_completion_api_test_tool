@@ -7,7 +7,7 @@ const el = (id) => document.getElementById(id);
 
 const state = {
   activeTab: 'chat',
-  endpointTouched: false,
+  urls: { ...DEFAULT_URLS },
   chatBodyDirty: false,
   embBodyDirty: false,
   lastResponseBody: null,
@@ -41,7 +41,7 @@ el('login-form').addEventListener('submit', async (e) => {
 // ---------- Tool init ----------
 
 function initTool() {
-  el('endpoint-url').value = DEFAULT_URLS[state.activeTab];
+  el('endpoint-url').value = state.urls[state.activeTab];
   renderChatMessages([
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user', content: 'Hello!' },
@@ -51,7 +51,7 @@ function initTool() {
   updateRawRequestPreview();
 
   el('endpoint-url').addEventListener('input', () => {
-    state.endpointTouched = true;
+    state.urls[state.activeTab] = el('endpoint-url').value;
     updateRawRequestPreview();
   });
   el('api-key').addEventListener('input', updateRawRequestPreview);
@@ -66,6 +66,14 @@ function initTool() {
 
   document.querySelectorAll('.tab-button').forEach((btn) => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  el('endpoint-toggle').addEventListener('click', () => {
+    const toggle = el('endpoint-toggle');
+    const content = el('endpoint-content');
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!expanded));
+    content.hidden = expanded;
   });
 
   el('add-message').addEventListener('click', () => {
@@ -112,9 +120,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-panel').forEach((panel) => {
     panel.classList.toggle('active', panel.id === `tab-${tab}`);
   });
-  if (!state.endpointTouched) {
-    el('endpoint-url').value = DEFAULT_URLS[tab];
-  }
+  el('endpoint-url').value = state.urls[tab];
   updateRawRequestPreview();
 }
 
@@ -228,6 +234,7 @@ function updateRawRequestPreview() {
     body: bodyPreview,
   };
   el('raw-request').textContent = JSON.stringify(preview, null, 2);
+  el('endpoint-summary').textContent = `${url} — ${apiKey ? 'key set' : 'no key'}`;
 }
 
 // ---------- Send ----------

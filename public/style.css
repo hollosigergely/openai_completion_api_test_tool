@@ -8,10 +8,75 @@
 
 body {
   margin: 0;
-  padding: 2rem;
+  padding: 0.5rem 0.75rem;
   background: #fff;
-  max-width: 1100px;
-  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+#tool-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: calc(100vh - 1rem);
+}
+
+#tool-screen[hidden] {
+  display: none;
+}
+
+.endpoint-bar {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+}
+
+.app-title {
+  font-weight: 700;
+}
+
+.endpoint-summary {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: #5a6472;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.endpoint-fields {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.endpoint-fields #endpoint-url {
+  flex: 2;
+}
+
+.endpoint-fields #api-key {
+  flex: 1;
+}
+
+.endpoint-fields .checkbox-row {
+  white-space: nowrap;
+  margin: 0;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.card-heading h2 {
+  margin: 0;
 }
 
 h1 {
@@ -127,7 +192,6 @@ button:hover {
 .tabs {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
 .tab-button.active {
@@ -141,7 +205,11 @@ button:hover {
 }
 
 .tab-panel.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0.5rem;
 }
 
 .message-row {
@@ -165,10 +233,87 @@ button:hover {
   flex: 0 0 auto;
 }
 
-.panels {
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collapsible-header .arrow {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.collapsible-header[aria-expanded="true"] .arrow {
+  transform: rotate(90deg);
+}
+
+.collapsible-content {
+  margin-top: 0.5rem;
+}
+
+.collapsible-content[hidden] {
+  display: none;
+}
+
+.workspace {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  grid-template-columns: minmax(340px, 2fr) 3fr;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.workspace .card {
+  margin-bottom: 0;
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.workspace .card h2 {
+  margin-bottom: 0.4rem;
+}
+
+.guided-card {
+  flex: 0 1 auto;
+  overflow-y: auto;
+  max-height: 55%;
+}
+
+.body-card {
+  flex: 1;
+}
+
+.body-card textarea {
+  flex: 1;
+  resize: none;
+  min-height: 0;
+}
+
+.pane-request {
+  flex: 2;
+}
+
+.pane-response {
+  flex: 3;
 }
 
 pre {
@@ -177,10 +322,12 @@ pre {
   padding: 0.9rem;
   border-radius: 8px;
   font-size: 0.78rem;
-  overflow-x: auto;
+  overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 420px;
+  flex: 1;
+  min-height: 0;
+  margin: 0;
 }
 
 .similarity-result {
@@ -202,6 +349,10 @@ pre {
   margin-top: 4rem;
 }
 
+#login-screen[hidden] {
+  display: none;
+}
+
 .login-card {
   max-width: 380px;
   width: 100%;
@@ -216,8 +367,24 @@ pre {
   flex: 1;
 }
 
-@media (max-width: 800px) {
-  .panels {
+.field-row .field-wide {
+  flex: 2;
+}
+
+@media (max-width: 1000px) {
+  .workspace {
     grid-template-columns: 1fr;
+  }
+
+  #tool-screen {
+    height: auto;
+  }
+
+  pre {
+    max-height: 60vh;
+  }
+
+  .body-card textarea {
+    min-height: 200px;
   }
 }
