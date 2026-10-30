@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenAI REST API — Course Tool</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<section id="login-screen">
+  <div class="card login-card">
+    <h1>OpenAI REST API — Course Tool</h1>
+    <p>Enter the course password to continue.</p>
+    <form id="login-form">
+      <input type="password" id="login-password" placeholder="Course password" autocomplete="off" required />
+      <button type="submit">Enter</button>
+    </form>
+    <p id="login-error" class="error"></p>
+  </div>
+</section>
+
+<section id="tool-screen" hidden>
+  <header>
+    <h1>OpenAI REST API — Course Tool</h1>
+    <p class="subtitle">Every request below is a real HTTP call. Nothing is hidden from you.</p>
+  </header>
+
+  <div class="card common-fields">
+    <div class="field">
+      <label for="endpoint-url">Endpoint URL</label>
+      <input type="text" id="endpoint-url" />
+    </div>
+    <div class="field">
+      <label for="api-key">API key <span class="hint">(leave blank if the endpoint needs none)</span></label>
+      <div class="key-row">
+        <input type="password" id="api-key" placeholder="sk-..." autocomplete="off" />
+        <button type="button" id="toggle-key-visibility">show</button>
+      </div>
+    </div>
+    <label class="checkbox-row">
+      <input type="checkbox" id="mask-key-preview" checked />
+      Mask key in the raw request preview below
+    </label>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab-button active" data-tab="chat">Chat Completions</button>
+    <button class="tab-button" data-tab="embeddings">Embeddings</button>
+  </nav>
+
+  <div id="tab-chat" class="tab-panel active">
+    <div class="card">
+      <h2>Guided form</h2>
+      <div class="field">
+        <label for="chat-model">Model</label>
+        <input type="text" id="chat-model" value="gpt-4o-mini" />
+      </div>
+      <div id="chat-messages"></div>
+      <button type="button" id="add-message">+ Add message</button>
+      <div class="field-row">
+        <div class="field">
+          <label for="chat-temperature">Temperature: <span id="chat-temperature-value">1</span></label>
+          <input type="range" id="chat-temperature" min="0" max="2" step="0.1" value="1" />
+        </div>
+        <div class="field">
+          <label for="chat-max-tokens">Max tokens</label>
+          <input type="number" id="chat-max-tokens" value="200" min="1" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Request body <span class="hint">(editable — kept in sync with the form above until you change it directly)</span></h2>
+      <textarea id="chat-body" rows="10" spellcheck="false"></textarea>
+      <button type="button" id="chat-resync">Re-sync from form</button>
+    </div>
+  </div>
+
+  <div id="tab-embeddings" class="tab-panel">
+    <div class="card">
+      <h2>Guided form</h2>
+      <div class="field">
+        <label for="emb-model">Model</label>
+        <input type="text" id="emb-model" value="text-embedding-3-small" />
+      </div>
+      <div class="field">
+        <label for="emb-text-a">Text A</label>
+        <textarea id="emb-text-a" rows="2">The cat sat on the mat.</textarea>
+      </div>
+      <div class="field">
+        <label for="emb-text-b">Text B <span class="hint">(optional — fill in to compare similarity)</span></label>
+        <textarea id="emb-text-b" rows="2">A feline rested on the rug.</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Request body <span class="hint">(editable — kept in sync with the form above until you change it directly)</span></h2>
+      <textarea id="emb-body" rows="6" spellcheck="false"></textarea>
+      <button type="button" id="emb-resync">Re-sync from form</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <button type="button" id="send-button" class="send-button">Send request</button>
+  </div>
+
+  <div class="panels">
+    <div class="card">
+      <h2>Raw request</h2>
+      <pre id="raw-request">—</pre>
+    </div>
+    <div class="card">
+      <h2>Raw response</h2>
+      <pre id="raw-response">—</pre>
+      <div id="similarity-result" class="similarity-result" hidden></div>
+    </div>
+  </div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
