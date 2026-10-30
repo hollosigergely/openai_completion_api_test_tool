@@ -1,0 +1,11 @@
+services:
+  course-tool:
+    build: .
+    image: openai-api-course-tool
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # The container always listens on 3000; change HOST_PORT to publish elsewhere.
+      PORT: "3000"
+    ports:
+      - "${HOST_PORT:-3000}:3000"

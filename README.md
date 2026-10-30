@@ -25,6 +25,26 @@ small VPS, a laptop on the same network, etc.), optionally behind a
 reverse proxy for HTTPS. No database, no API key of your own, and no
 per-attendee accounts are needed.
 
+## Docker
+
+```bash
+cp .env.example .env    # set COURSE_PASSWORD and COOKIE_SECRET
+docker compose up -d --build
+```
+
+The app is then on `http://localhost:3000` (set `HOST_PORT` to publish another
+port). Settings come from `.env` at start; `.env` is never copied into the
+image, so after editing it run `docker compose up -d` again. Without Compose:
+
+```bash
+docker build -t openai-api-course-tool .
+docker run -d --name course-tool --restart unless-stopped \
+  --env-file .env -e PORT=3000 -p 3000:3000 openai-api-course-tool
+```
+
+The relay runs inside the container, so endpoints like `localhost` mean the
+container itself, not your machine; use a reachable hostname or IP.
+
 ## How it works
 
 - `server/index.js` — Express app. Serves the frontend, checks the course

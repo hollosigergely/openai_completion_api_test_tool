@@ -10,6 +10,8 @@ cp .env.example .env   # set COURSE_PASSWORD, COOKIE_SECRET; optional PORT (defa
 npm start
 ```
 
+Docker: `Dockerfile` (node:22-alpine, non-root, healthcheck), `.dockerignore` (keeps `.env` and `node_modules` out of the image), `docker-compose.yml` (`env_file: .env`, forces `PORT=3000` inside, publishes `${HOST_PORT:-3000}`). The Dockerfile build and a container run were tested; the compose file was not (the `docker compose` plugin is not installed on this machine). When testing containers use a spare host port and remove the container and image afterwards.
+
 `.env` is read only at startup: restart the server after editing it. No test suite, no build step. Node >= 18 (native `fetch`); dependencies are only express, cookie-parser, dotenv.
 
 ## Architecture
