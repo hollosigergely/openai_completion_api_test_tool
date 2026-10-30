@@ -92,6 +92,33 @@
             <button type="button" id="insert-example-tool">Insert example (get_weather)</button>
             <p id="chat-tools-error" class="error"></p>
           </details>
+          <details class="tools-details">
+            <summary>Structured output (response_format)</summary>
+            <p class="hint">Ask for JSON that follows a schema. The answer still arrives as a <em>string</em> in <code>message.content</code>; you parse it.</p>
+            <div class="field">
+              <label for="chat-format">Mode</label>
+              <select id="chat-format">
+                <option value="">not sent</option>
+                <option value="json_object">JSON mode (json_object)</option>
+                <option value="json_schema">JSON schema</option>
+              </select>
+            </div>
+            <div id="chat-schema-fields" hidden>
+              <div class="field-row">
+                <div class="field field-wide">
+                  <label for="chat-schema-name">Schema name</label>
+                  <input type="text" id="chat-schema-name" value="result" />
+                </div>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="chat-schema-strict" checked />
+                  strict
+                </label>
+              </div>
+              <textarea id="chat-schema" rows="10" spellcheck="false" placeholder="{ &quot;type&quot;: &quot;object&quot;, ... }"></textarea>
+              <button type="button" id="insert-example-schema">Insert example (contact)</button>
+              <p id="chat-schema-error" class="error"></p>
+            </div>
+          </details>
         </div>
 
         <div class="card body-card">
@@ -151,6 +178,10 @@
         </div>
         <pre id="raw-response">—</pre>
         <div id="similarity-result" class="similarity-result" hidden></div>
+        <div id="parsed-result" class="parsed-result" hidden>
+          <div id="parsed-status" class="parsed-status"></div>
+          <pre id="parsed-content"></pre>
+        </div>
       </div>
     </div>
   </div>

@@ -98,6 +98,18 @@ async function initTool() {
     el('chat-tools').value = JSON.stringify(EXAMPLE_TOOLS, null, 2);
     syncChatBody();
   });
+  el('chat-format').addEventListener('change', () => {
+    el('chat-schema-fields').hidden = el('chat-format').value !== 'json_schema';
+    syncChatBody();
+  });
+  el('chat-schema').addEventListener('input', syncChatBody);
+  el('chat-schema-name').addEventListener('input', syncChatBody);
+  el('chat-schema-strict').addEventListener('change', syncChatBody);
+  el('insert-example-schema').addEventListener('click', () => {
+    el('chat-schema-name').value = 'contact';
+    el('chat-schema').value = JSON.stringify(EXAMPLE_SCHEMA, null, 2);
+    syncChatBody();
+  });
   el('append-reply').addEventListener('click', appendReplyToMessages);
   el('chat-temperature').addEventListener('input', () => {
     el('chat-temperature-value').textContent = el('chat-temperature').value;
@@ -229,6 +241,35 @@ function parseTools() {
   }
 }
 
+const EXAMPLE_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    email: { type: 'string' },
+    sentiment: { type: 'string', enum: ['positive', 'neutral', 'negative'] },
+    topics: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['name', 'email', 'sentiment', 'topics'],
+  additionalProperties: false,
+};
+
+function parseSchema() {
+  const text = el('chat-schema').value.trim();
+  const error = el('chat-schema-error');
+  error.textContent = '';
+  if (!text) return null;
+  try {
+    const schema = JSON.parse(text);
+    if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+      throw new Error('must be a JSON object');
+    }
+    return schema;
+  } catch (err) {
+    error.textContent = `Invalid schema JSON (${err.message}) — response_format not sent`;
+    return null;
+  }
+}
+
 function syncChatBody() {
   if (state.chatBodyDirty) return;
   const messages = Array.from(el('chat-messages').children).map((row) => {
@@ -253,6 +294,22 @@ function syncChatBody() {
   if (reasoning) body.reasoning_effort = reasoning;
   const tools = parseTools();
   if (tools) body.tools = tools;
+  const format = el('chat-format').value;
+  if (format === 'json_object') {
+    body.response_format = { type: 'json_object' };
+  } else if (format === 'json_schema') {
+    const schema = parseSchema();
+    if (schema) {
+      body.response_format = {
+        type: 'json_schema',
+        json_schema: {
+          name: el('chat-schema-name').value || 'result',
+          strict: el('chat-schema-strict').checked,
+          schema,
+        },
+      };
+    }
+  }
   el('chat-body').value = JSON.stringify(body, null, 2);
   updateRawRequestPreview();
 }
@@ -350,6 +407,7 @@ async function sendRequest() {
   const bodyText = el(currentBodyTextareaId()).value;
 
   el('similarity-result').hidden = true;
+  el('parsed-result').hidden = true;
   el('append-reply').hidden = true;
   state.lastReply = null;
   el('raw-response').textContent = 'Sending…';
@@ -386,6 +444,7 @@ async function sendRequest() {
       maybeShowSimilarity(relayResult.body);
     } else {
       maybeOfferAppend(relayResult.body);
+      maybeShowParsed(body, relayResult.body);
     }
   } catch (err) {
     el('raw-response').textContent = 'Network error: ' + err.message;
@@ -403,6 +462,47 @@ function maybeOfferAppend(responseBody) {
     toolCalls,
   };
   el('append-reply').hidden = false;
+}
+
+function maybeShowParsed(requestBody, responseBody) {
+  const format = requestBody && requestBody.response_format;
+  if (!format) return;
+  const choice = responseBody && responseBody.choices && responseBody.choices[0];
+  if (!choice || !choice.message) return;
+  const message = choice.message;
+  const status = el('parsed-status');
+  const content = el('parsed-content');
+  const show = (text, level, pretty = '') => {
+    status.textContent = text;
+    status.className = `parsed-status ${level}`;
+    content.textContent = pretty;
+    el('parsed-result').hidden = false;
+  };
+
+  if (message.refusal) return show(`Model refused: ${message.refusal}`, 'bad');
+  if (typeof message.content !== 'string') return show('The reply has no text content.', 'bad');
+
+  const cutOff = choice.finish_reason === 'length';
+  let parsed;
+  try {
+    parsed = JSON.parse(message.content);
+  } catch (err) {
+    const hint = cutOff ? ' The answer was cut off by max_tokens.' : '';
+    return show(`Not valid JSON: ${err.message}.${hint}`, 'bad', message.content);
+  }
+
+  const notes = [];
+  if (cutOff) notes.push('finish_reason is "length" (cut off by max_tokens)');
+  const required = format.type === 'json_schema' && format.json_schema?.schema?.required;
+  if (Array.isArray(required) && parsed && typeof parsed === 'object') {
+    const missing = required.filter((key) => !(key in parsed));
+    if (missing.length) notes.push(`missing required keys: ${missing.join(', ')}`);
+  }
+  show(
+    notes.length ? `Valid JSON, but ${notes.join('; ')}` : 'Valid JSON, parsed from message.content',
+    notes.length ? 'warn' : 'good',
+    JSON.stringify(parsed, null, 2)
+  );
 }
 
 function appendReplyToMessages() {

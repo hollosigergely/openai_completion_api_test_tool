@@ -62,6 +62,34 @@ conversation back with the assistant message plus a `tool` message:
 ```
 The model then answers in plain language using that result.
 
+## Structured output
+
+Software needs data, not prose. Add `response_format` to the request and the
+model's answer follows your JSON schema:
+```json
+"response_format": {
+  "type": "json_schema",
+  "json_schema": {
+    "name": "contact",
+    "strict": true,
+    "schema": {
+      "type": "object",
+      "properties": { "name": { "type": "string" }, "sentiment": { "enum": ["positive", "neutral", "negative"] } },
+      "required": ["name", "sentiment"],
+      "additionalProperties": false
+    }
+  }
+}
+```
+- The answer is still a **string** in `choices[0].message.content`; your code
+  must `JSON.parse` it.
+- `strict: true` (OpenAI) requires every property in `required` and
+  `additionalProperties: false`; otherwise the API returns a 400 error.
+- `{"type": "json_object"}` ("JSON mode") only guarantees *valid* JSON, not
+  your shape.
+- A refusal comes back in `message.refusal` instead of `content`; a too-small
+  `max_tokens` cuts the JSON off (`finish_reason: "length"`).
+
 ## Embeddings — `/v1/embeddings`
 
 **Request body fields:**

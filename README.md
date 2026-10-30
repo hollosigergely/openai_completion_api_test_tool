@@ -53,5 +53,11 @@ before the exercises. Suggested flow:
    look at the real error response.
 4. Switch to Embeddings, compare two sentences, and look at the cosine
    similarity score.
+   Structured output exercise (Chat tab, "Structured output" section):
+   ask for name, email and sentiment of a pasted customer email with plain
+   prompting (free text); then JSON mode; then JSON schema (use "Insert
+   example"); then break the schema (remove `additionalProperties: false`
+   or a `required` entry) and read the 400; finally set max tokens to 10 and
+   see the truncated, unparseable answer.
 5. (Optional, for groups with their own key) Point the endpoint URL at a
    different OpenAI-compatible provider and see the same request shape work.
